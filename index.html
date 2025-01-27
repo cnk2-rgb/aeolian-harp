@@ -6,26 +6,28 @@
 <script src="https://algorithmicmusic.online/js/create-waveform.js"></script>
 <script>
 /* global Tone, nn, d3, createWaveform, createSpectrum */
-const wave = createWaveform()
+const synth = new Tone.Synth().toDestination()
 
-const spec = createSpectrum({
-  range: [20, 7050]
-})
+// function play () {
+  
+// }
 
-const osc = new Tone.Oscillator()
-osc.frequency.value = 440
-osc.type = 'custom' // custom wave shape
-osc.partials = [1, 0.2, 0.01, 0.2, 1] // level for each harmonic
-osc.toDestination()
-osc.connect(wave)
-osc.connect(spec)
-
-// we've sapped the "play" function for a "toggle" function
 function toggle (e) {
-  const play = e.target.checked
-  if (play) osc.start()
-  else osc.stop()
+  const check = e.target.checked
+  while (check) {
+    const frequencies = [440.00, 493.88, 523.25, 587.33, 659.26, 698.46, 783.99, 880]
+    const freq = nn.random(frequencies)// random frquency from list
+    const dur = 2 // two seconds
+    // triggerAttackRelease combines both triggerAttack and triggerRelease into a single method
+    synth.triggerAttackRelease(freq, dur)
+  }
 }
+
+// UI
+// nn.create('button')
+//   .content('play note')
+//   .addTo('body')
+//   .on('click', play)
 
 // we've also swapped the button for a checkbox
 nn.create('input')
@@ -37,5 +39,9 @@ nn.create('input')
 nn.create('label')
   .content(' toggle on/off')
   .addTo('body')
+
+// // visualizations
+// const wave = createWaveform()
+// synth.connect(wave)
 
 </script>
