@@ -1,6 +1,7 @@
 <body></body>
 <script src="https://unpkg.com/tone"></script>
 <script src="https://cdn.jsdelivr.net/gh/netizenorg/netnet-standard-library/build/nn.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/nbriz/NWS/NWS.js"></script>
 <script>
 /* global Tone, nn */
 // const synth = new Tone.Synth();
@@ -13,8 +14,20 @@ osc.frequency.value = 300;
 
 effect.toDestination();
 
+// DATA
 const freq = [587.330, 622.25, 523.25, 493.883]
 // const duration = [0.1, 0.4, 0.05, 0.3]
+
+nn.askForGPS((data) => {
+    console.log(data)
+    getWindData(data.lat, data.lng)
+})
+
+async function getWindData(lat, lon) {
+    const point = await NWS.getPoint(lat, lon, true);
+    const td_forecast = await NWS.getForecast(point);
+    console.log(td_forecast);
+}
 
 let i = 0;
 // repeated event every 8th note
