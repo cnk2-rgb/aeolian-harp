@@ -1,0 +1,63 @@
+<body></body>
+<script src="https://unpkg.com/tone"></script>
+<script src="https://cdn.jsdelivr.net/gh/netizenorg/netnet-standard-library/build/nn.min.js"></script>
+<script>
+/* global Tone, nn */
+// const synth = new Tone.Synth();
+// synth.connect(effect);
+// effect.toDestination();
+const osc = new Tone.Oscillator()
+const effect = new Tone.Reverb();
+osc.connect(effect);
+osc.frequency.value = 300;
+
+effect.toDestination();
+
+const freq = [587.330, 622.25, 523.25, 493.883]
+// const duration = [0.1, 0.4, 0.05, 0.3]
+
+let i = 0;
+// repeated event every 8th note
+Tone.Transport.scheduleRepeat((time) => {
+	// use the callback time to schedule events
+// synth.triggerAttack(440, time)
+// synth.triggerRelease(time+0.1);
+  osc.start(time).stop(time+ (Math.random()*0.5));
+  osc.frequency.value = freq[i];
+  i = (i+1)%4;
+  
+}, "4n");
+// transport must be started before it starts invoking events
+//Tone.Transport.start();
+
+function play () {
+  //input: event listener
+  Tone.Transport.start();
+}
+  
+function stop () {
+  Tone.Transport.stop();
+}
+
+// // we've also swapped the button for a checkbox
+// nn.create('input')
+//   .addTo('body')
+//   .set({ type: 'checkbox' })
+//   .on('change', toggle)
+
+// // and added a label for clarity
+// nn.create('label')
+//   .content(' toggle on/off')
+//   .addTo('body')
+  
+nn.create('button')
+  .content('play tone')
+  .addTo('body')
+  .on('click', play)
+  
+nn.create('button')
+  .content('stop tone')
+  .addTo('body')
+  .on('click', stop)
+
+</script>
