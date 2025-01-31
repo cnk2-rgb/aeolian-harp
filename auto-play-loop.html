@@ -4,41 +4,78 @@
 <script src="https://cdn.jsdelivr.net/gh/nbriz/NWS/NWS.js"></script>
 <script>
 /* global Tone, nn */
-// const synth = new Tone.Synth();
-// synth.connect(effect);
-// effect.toDestination();
-const osc = new Tone.Oscillator()
+const synth = new Tone.PolySynth();
 const effect = new Tone.Reverb();
-osc.connect(effect);
-osc.frequency.value = 300;
-
+synth.connect(effect);
 effect.toDestination();
+
 
 // DATA
 const freq = [587.330, 622.25, 523.25, 493.883]
 // const duration = [0.1, 0.4, 0.05, 0.3]
+let dur_arr = [] //array of tempi
+let freq_arr = []
+const dir_to_freq = {
+    "N": ['C4', 'E4', 'G4'],
+    "NE": ['D4', 'F4', 'G4', 'B4'],
+    "E": ['E4', 'G4', 'C5'],
+    "SE": ['F4', 'A4', 'C5', 'D5'], 
+    'S': ['G4', 'B4', 'D5'],
+    'SW': ['A4', 'C5', 'F5'], 
+    'W': ['B4', 'D5', 'F5', 'G5'], 
+    'NW': ['C5', 'E5', 'G5']
+}
 
 nn.askForGPS((data) => {
     console.log(data)
     getWindData(data.lat, data.lng)
 })
 
+//CHATGPT: How can you parse a string in JavaScript? For example, if I am given an input "10 to 15 mph", how can I extract the numerical characters before the first space (such that the output is "10")?
+function parseDuration(speed) {
+    const str_dur = speed.split(" ")[0];
+    let dur = Number(str_dur) * 9; //some sort of standardization procedure
+    //console.log("duration in parse duration", dur)
+    dur_arr.push(dur);
+}
+
+function parseFreq(direction) {
+    if (direction.length > 2) {
+        direction = direction.slice(-2)
+    }
+    freq_arr.push(dir_to_freq[direction]); //no error catching lol
+}
+
+//CHAT GPT: how to generate random integer in a certain range in js
+function getRandomInt(min, max) {
+    min = Math.ceil(min);   // Round up to ensure min is an integer
+    max = Math.floor(max);  // Round down to ensure max is an integer
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 async function getWindData(lat, lon) {
     const point = await NWS.getPoint(lat, lon, true);
     const td_forecast = await NWS.getForecast(point);
-    console.log(td_forecast);
+    console.log("td_forecast", td_forecast);
+    const weekly_forecast = await NWS.getWeeklyForecast(point);
+    console.log("weekly forecast", weekly_forecast);
+    for (const forecast of weekly_forecast) {
+        parseDuration(forecast["windSpeed"]);
+        parseFreq(forecast["windDirection"]);
+    }
+
 }
+
+//pitchshift 
+pitchShift.pitch = -12; //down one octave
 
 let i = 0;
 // repeated event every 8th note
 Tone.Transport.scheduleRepeat((time) => {
-	// use the callback time to schedule events
-// synth.triggerAttack(440, time)
-// synth.triggerRelease(time+0.1);
-  osc.start(time).stop(time+ (Math.random()*0.5));
-  osc.frequency.value = freq[i];
-  i = (i+1)%4;
-  
+  synth.triggerAttackRelease(freq_arr[i], "4n");
+  Tone.Transport.bpm.value = dur_arr[i];
+  i = getRandomInt(0, 13);
+//   i = (i + 1) % dur_arr.length;
 }, "4n");
 // transport must be started before it starts invoking events
 //Tone.Transport.start();
