@@ -5,25 +5,47 @@
 <script>
 /* global Tone, nn */
 const synth = new Tone.PolySynth();
+synth.set({
+  portamento: 0,
+  oscillator: {
+    type: 'square4'
+  },
+  envelope: {
+    attack: 2,
+    decay: 1,
+    sustain: 0.2,
+    release: 2
+  }
+});
+const chorus = new Tone.Chorus(4, 2.5, 0.5);
+const gainNode = new Tone.Gain(0.5)
 const effect = new Tone.Reverb();
-synth.connect(effect);
-effect.toDestination();
+const shift = new Tone.PitchShift(0);
+// const shift = new Tone.Phaser({
+//     frequency: 15,
+//     octaves: 1,
+//     baseFrequency: 1000
+// });
+synth.connect(chorus);
+chorus.connect(effect);
+effect.connect(shift);
+shift.connect(gainNode);
+gainNode.toDestination();
 
 
 // DATA
-const freq = [587.330, 622.25, 523.25, 493.883]
-// const duration = [0.1, 0.4, 0.05, 0.3]
+
 let dur_arr = [] //array of tempi
 let freq_arr = []
 const dir_to_freq = {
-    "N": ['C4', 'E4', 'G4'],
+    "N": ['C4', 'E4', 'G4', 'C5'],
     "NE": ['D4', 'F4', 'G4', 'B4'],
-    "E": ['E4', 'G4', 'C5'],
+    "E": ['E4', 'G4', 'C5', 'E5'],
     "SE": ['F4', 'A4', 'C5', 'D5'], 
-    'S': ['G4', 'B4', 'D5'],
-    'SW': ['A4', 'C5', 'F5'], 
+    'S': ['G4', 'B4', 'D5', 'G5'],
+    'SW': ['A4', 'C5', 'F5', 'A5'], 
     'W': ['B4', 'D5', 'F5', 'G5'], 
-    'NW': ['C5', 'E5', 'G5']
+    'NW': ['C5', 'E5', 'G5', 'C6']
 }
 
 nn.askForGPS((data) => {
@@ -34,7 +56,7 @@ nn.askForGPS((data) => {
 //CHATGPT: How can you parse a string in JavaScript? For example, if I am given an input "10 to 15 mph", how can I extract the numerical characters before the first space (such that the output is "10")?
 function parseDuration(speed) {
     const str_dur = speed.split(" ")[0];
-    let dur = Number(str_dur) * 9; //some sort of standardization procedure
+    let dur = Number(str_dur) * 6; //some sort of standardization procedure
     //console.log("duration in parse duration", dur)
     dur_arr.push(dur);
 }
@@ -55,11 +77,11 @@ function getRandomInt(min, max) {
 
 async function getWindData(lat, lon) {
     const point = await NWS.getPoint(lat, lon, true);
-    const td_forecast = await NWS.getForecast(point);
-    console.log("td_forecast", td_forecast);
-    const weekly_forecast = await NWS.getWeeklyForecast(point);
-    console.log("weekly forecast", weekly_forecast);
-    for (const forecast of weekly_forecast) {
+    // const td_forecast = await NWS.getForecast(point);
+    // console.log("td_forecast", td_forecast);
+    const mult_forecast = await NWS.getHourlyForecast(point);
+    console.log("weekly forecast", mult_forecast);
+    for (const forecast of mult_forecast) {
         parseDuration(forecast["windSpeed"]);
         parseFreq(forecast["windDirection"]);
     }
@@ -67,15 +89,15 @@ async function getWindData(lat, lon) {
 }
 
 //pitchshift 
-pitchShift.pitch = -12; //down one octave
+// pitchShift.pitch = -12; //down one octave
 
 let i = 0;
 // repeated event every 8th note
 Tone.Transport.scheduleRepeat((time) => {
   synth.triggerAttackRelease(freq_arr[i], "4n");
   Tone.Transport.bpm.value = dur_arr[i];
-  i = getRandomInt(0, 13);
-//   i = (i + 1) % dur_arr.length;
+//   i = getRandomInt(0, dur_arr.length - 1);
+  i = (i + 1) % dur_arr.length;
 }, "4n");
 // transport must be started before it starts invoking events
 //Tone.Transport.start();
@@ -89,16 +111,11 @@ function stop () {
   Tone.Transport.stop();
 }
 
-// // we've also swapped the button for a checkbox
-// nn.create('input')
-//   .addTo('body')
-//   .set({ type: 'checkbox' })
-//   .on('change', toggle)
-
-// // and added a label for clarity
-// nn.create('label')
-//   .content(' toggle on/off')
-//   .addTo('body')
+function updateFrequency (e) {
+  const freq = e.target.value
+//   shift.frequency.value = freq
+    shift.pitch = freq
+}
   
 nn.create('button')
   .content('play tone')
@@ -109,5 +126,15 @@ nn.create('button')
   .content('stop tone')
   .addTo('body')
   .on('click', stop)
+
+nn.create('input')
+  .set({
+    type: 'range',
+    value: 0,
+    min: -12,
+    max: 12
+  })
+  .addTo('body')
+  .on('input', updateFrequency)
 
 </script>
