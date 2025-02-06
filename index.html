@@ -8,8 +8,8 @@
 </head>
     
 <body>
-    <button id="startButton">Click me to start</button>
-    <button id="stopButton">Click me to stop</button>
+    <button id="startButton">commence</button>
+    <button id="stopButton">halt</button>
     
     <div id="info">
         <p id="Loaded">Loading... please wait until loaded to start</p>
@@ -17,6 +17,8 @@
         <p id="Speed"> </p>
     </div>
     <p id="Transposed"> </p>
+
+    <div id="circle" class="glowing-circle"></div>
 </body>
 <script src="https://unpkg.com/tone"></script>
 <script src="https://cdn.jsdelivr.net/gh/netizenorg/netnet-standard-library/build/nn.min.js"></script>
@@ -120,6 +122,7 @@ let i = 0;
 Tone.Transport.scheduleRepeat((time) => {
   document.getElementById("Hour").textContent = "Current note playing is from wind blowing at your current location " + String(i) + " hours from the present...";
   document.getElementById("Speed").textContent = "...at a speed of " + speed_arr[i] + " in the " + direction_arr[i] + " direction";
+  updateGlow(direction_arr[i]);
   synth.triggerAttackRelease(freq_arr[i], "4n");
   Tone.Transport.bpm.value = dur_arr[i];
 //   i = getRandomInt(0, dur_arr.length - 1);
@@ -141,6 +144,7 @@ function updateFrequency (e) {
   const freq = e.target.value
 //   shift.frequency.value = freq
     shift.pitch = freq
+    currentColor = "255, 0, 0, 0.5";
     document.getElementById("Transposed").textContent = "Transposed " + String(freq) + " semitones.";
 }
 
@@ -168,8 +172,31 @@ stopButton.addEventListener("click", function() {
   stop();
 });
 
+let circle = document.getElementById("circle");
+let currentColor = "132, 140, 207, 0.8";
 
-// How can I change the text of a div (when something happens in js) without interacting with the page?
+function updateGlow(direction) {
+            let glowX = 0, glowY = 0;
+            const glowStrength = 30; // Adjust glow distance
+
+            switch (direction) {
+                case "N":  glowY = -glowStrength; break; // Up
+                case "S":  glowY = glowStrength;  break; // Down
+                case "E":  glowX = glowStrength;  break; // Right
+                case "W":  glowX = -glowStrength; break; // Left
+                case "NE": glowX = glowStrength;  glowY = -glowStrength; break; // Up-Right
+                case "NW": glowX = -glowStrength; glowY = -glowStrength; break; // Up-Left
+                case "SE": glowX = glowStrength;  glowY = glowStrength; break; // Down-Right
+                case "SW": glowX = -glowStrength; glowY = glowStrength; break; // Down-Left
+                default:
+                    console.warn("Invalid direction. Use 'N', 'S', 'E', 'W', 'NE', 'NW', 'SE', 'SW'.");
+                    return;
+            }
+
+            circle.style.boxShadow = `${glowX}px ${glowY}px 30px rgba(${currentColor})`;
+        }
+
+// CHATGPT: How can I change the text of a div (when something happens in js) without interacting with the page?
 </script>
 
 </html>

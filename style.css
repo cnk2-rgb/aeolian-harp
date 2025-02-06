@@ -3,12 +3,16 @@ body {
     font-family: "Share Tech", serif;
     font-size: 25;
     padding: 10%;
+    
     color:antiquewhite;
+    /* text-align: center; */
+    /* margin-top: 10%; */
+    overflow: hidden;
 }
 
 button {
     font-family: "Share Tech", serif;
-    font-size: 15;
+    font-size: 17;
 }
 
 #Transposed {
@@ -21,6 +25,18 @@ button {
     margin-right: auto;
 }
 
+/* Circle */
+.glowing-circle {
+    width: 100px;
+    height: 100px;
+    background-color: black;
+    border-radius: 200px;
+    margin: auto;
+    position: relative;
+    border: 3px solid white;
+    transition: box-shadow 0.3s ease-out;
+    margin-top: 10%;
+}
 
 /* .share-tech-regular {
     font-family: "Share Tech", serif;
