@@ -1,47 +1,175 @@
-<body></body>
+<html>
+
+<head>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Montserrat:wght@700&family=Orbitron:wght@400..900&family=Share+Tech&family=Source+Code+Pro&family=UnifrakturCook:wght@700&family=Varela+Round&display=swap" rel="stylesheet">
+</head>
+    
+<body>
+    <button id="startButton">Click me to start</button>
+    <button id="stopButton">Click me to stop</button>
+    
+    <div id="info">
+        <p id="Loaded">Loading... please wait until loaded to start</p>
+        <p id="Hour"> </p>
+        <p id="Speed"> </p>
+    </div>
+    <p id="Transposed"> </p>
+</body>
 <script src="https://unpkg.com/tone"></script>
-<script src="https://cdn.jsdelivr.net/gh/netizenorg/netnet-standard-library/build/nn.min.js?v=1"></script>
-<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
-<script src="https://algorithmicmusic.online/js/create-spectrum.js"></script>
-<script src="https://algorithmicmusic.online/js/create-waveform.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/netizenorg/netnet-standard-library/build/nn.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/nbriz/NWS/NWS.js"></script>
 <script>
-/* global Tone, nn, d3, createWaveform, createSpectrum */
-const synth = new Tone.Synth().toDestination()
-
-// function play () {
-  
-// }
-
-function toggle (e) {
-  const check = e.target.checked
-  while (check) {
-    const frequencies = [440.00, 493.88, 523.25, 587.33, 659.26, 698.46, 783.99, 880]
-    const freq = nn.random(frequencies)// random frquency from list
-    const dur = 2 // two seconds
-    // triggerAttackRelease combines both triggerAttack and triggerRelease into a single method
-    synth.triggerAttackRelease(freq, dur)
+/* global Tone, nn */
+const synth = new Tone.PolySynth();
+synth.set({
+  portamento: 0,
+  oscillator: {
+    type: 'square4'
+  },
+  envelope: {
+    attack: 2,
+    decay: 1,
+    sustain: 0.2,
+    release: 2
   }
+});
+const chorus = new Tone.Chorus(4, 2.5, 0.5);
+const gainNode = new Tone.Gain(0.5)
+const effect = new Tone.Reverb();
+const shift = new Tone.PitchShift(0);
+// const shift = new Tone.Phaser({
+//     frequency: 15,
+//     octaves: 1,
+//     baseFrequency: 1000
+// });
+synth.connect(chorus);
+chorus.connect(effect);
+effect.connect(shift);
+shift.connect(gainNode);
+gainNode.toDestination();
+
+
+// DATA
+
+let dur_arr = [] //array of tempi
+let freq_arr = []
+let direction_arr = []
+let speed_arr = []
+const dir_to_freq = {
+    "N": ['C4', 'E4', 'G4', 'C5'],
+    "NE": ['D4', 'F4', 'G4', 'B4'],
+    "E": ['E4', 'G4', 'C5', 'E5'],
+    "SE": ['F4', 'A4', 'C5', 'D5'], 
+    'S': ['G4', 'B4', 'D5', 'G5'],
+    'SW': ['A4', 'C5', 'F5', 'A5'], 
+    'W': ['B4', 'D5', 'F5', 'G5'], 
+    'NW': ['C5', 'E5', 'G5', 'C6']
 }
 
-// UI
-// nn.create('button')
-//   .content('play note')
-//   .addTo('body')
-//   .on('click', play)
+nn.askForGPS((data) => {
+    console.log(data)
+    getWindData(data.lat, data.lng)
+})
 
-// we've also swapped the button for a checkbox
+//CHATGPT: How can you parse a string in JavaScript? For example, if I am given an input "10 to 15 mph", how can I extract the numerical characters before the first space (such that the output is "10")?
+function parseDuration(speed) {
+    speed_arr.push(speed)
+    const str_dur = speed.split(" ")[0];
+    let dur = Number(str_dur) * 6; //some sort of standardization procedure
+    //console.log("duration in parse duration", dur)
+    dur_arr.push(dur);
+}
+
+function parseFreq(direction) {
+    if (direction.length > 2) {
+        direction = direction.slice(-2)
+    }
+    freq_arr.push(dir_to_freq[direction]); //no error catching lol
+    direction_arr.push(direction)
+}
+
+//CHAT GPT: how to generate random integer in a certain range in js
+function getRandomInt(min, max) {
+    min = Math.ceil(min);   // Round up to ensure min is an integer
+    max = Math.floor(max);  // Round down to ensure max is an integer
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+async function getWindData(lat, lon) {
+    const point = await NWS.getPoint(lat, lon, true);
+    // const td_forecast = await NWS.getForecast(point);
+    // console.log("td_forecast", td_forecast);
+    const mult_forecast = await NWS.getHourlyForecast(point);
+    console.log("hourly forecast", mult_forecast);
+    for (const forecast of mult_forecast) {
+        parseDuration(forecast["windSpeed"]);
+        parseFreq(forecast["windDirection"]);
+    }
+    document.getElementById("Loaded").textContent = "Wind data retrieved!";
+
+}
+
+//pitchshift 
+// pitchShift.pitch = -12; //down one octave
+
+let i = 0;
+// repeated event every 8th note
+Tone.Transport.scheduleRepeat((time) => {
+  document.getElementById("Hour").textContent = "Current note playing is from wind blowing at your current location " + String(i) + " hours from the present...";
+  document.getElementById("Speed").textContent = "...at a speed of " + speed_arr[i] + " in the " + direction_arr[i] + " direction";
+  synth.triggerAttackRelease(freq_arr[i], "4n");
+  Tone.Transport.bpm.value = dur_arr[i];
+//   i = getRandomInt(0, dur_arr.length - 1);
+  i = (i + 1) % dur_arr.length;
+}, "4n");
+// transport must be started before it starts invoking events
+//Tone.Transport.start();
+
+function play () {
+  //input: event listener
+  Tone.Transport.start();
+}
+  
+function stop () {
+  Tone.Transport.stop();
+}
+
+function updateFrequency (e) {
+  const freq = e.target.value
+//   shift.frequency.value = freq
+    shift.pitch = freq
+    document.getElementById("Transposed").textContent = "Transposed " + String(freq) + " semitones.";
+}
+
 nn.create('input')
+  .set({
+    type: 'range',
+    value: 0,
+    min: -12,
+    max: 12
+  })
   .addTo('body')
-  .set({ type: 'checkbox' })
-  .on('change', toggle)
+  .on('input', updateFrequency)
+  
 
-// and added a label for clarity
-nn.create('label')
-  .content(' toggle on/off')
-  .addTo('body')
+const startButton = document.getElementById("startButton");
+const stopButton = document.getElementById("stopButton");
 
-// // visualizations
-// const wave = createWaveform()
-// synth.connect(wave)
+startButton.addEventListener("click", function() {
+  // Code to execute when the button is clicked
+  play();
+});
 
+stopButton.addEventListener("click", function() {
+  // Code to execute when the button is clicked
+  stop();
+});
+
+
+// How can I change the text of a div (when something happens in js) without interacting with the page?
 </script>
+
+</html>
